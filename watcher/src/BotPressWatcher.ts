@@ -20,7 +20,7 @@ export class BotPressWatcher {
 
         let list: string[] = [];
         list = readFileSync('./watcher.txt', 'utf-8').split(/\r?\n/);
-        if (list && list.length > 0) {
+        if (list && list.length > 0 && list[0] != '') {
             this.counter = list.length;
             this.init(list, onReady);
         }
@@ -60,44 +60,51 @@ export class BotPressWatcher {
                 filename = filename.replace(new RegExp('/', 'g'), '\\');
             }
             const watcher = chokidar.watch(filename, { persistent: true });
-            this.watchers[filename] = {
-                watcher: watcher,
-                list: []
-            };
-
-            watcher
-                .on('add', path => {
-                    this.insert({ path: path, type: Type.File }, this.watchers[filename].list);
-                })
-                .on('addDir', path => {
-                    this.insert({ path: path, type: Type.Directory }, this.watchers[filename].list);
-                })
-                .on('ready', () => {
-                    this.counter -= 1;                    
-                    if (this.counter === 0 && onReady) {
-                        onReady(this);
-                    }                    
-                    watcher.removeAllListeners('add');
-                    watcher.removeAllListeners('addDir');
-                    watcher
-                        .on('add', path => {
-                            this.insert({ path: path, type: Type.File }, this.watchers[filename].list);
-                            this.onChange?.emit('change', {section: filename, cmd: Command.Add, type: Type.File, path: path});
-                        })
-                        .on('unlink', path => {
-                            this.remove({ path: path, type: Type.File }, this.watchers[filename].list)
-                            this.onChange?.emit('change', {section: filename, cmd: Command.Remove, type: Type.File, path: path});
-                        })
-                        .on('addDir', path => {
-                            this.insert({ path: path, type: Type.Directory }, this.watchers[filename].list);
-                            this.onChange?.emit('change', {section: filename, cmd: Command.Add, type: Type.Directory, path: path});
-                        })
-                        .on('unlinkDir', path => {
-                            this.remove({ path: path, type: Type.Directory }, this.watchers[filename].list)
-                            this.onChange?.emit('change', {section: filename, cmd: Command.Remove, type: Type.Directory, path: path});
-                        })
-                        .on('error', error => console.log(`Watcher error: ${error}`));
-                });
+            if (watcher) {
+                this.watchers[filename] = {
+                    watcher: watcher,
+                    list: []
+                };
+    
+                watcher
+                    .on('add', path => {
+                        this.insert({ path: path, type: Type.File }, this.watchers[filename].list);
+                    })
+                    .on('addDir', path => {
+                        this.insert({ path: path, type: Type.Directory }, this.watchers[filename].list);
+                    })
+                    .on('ready', () => {
+                        this.counter -= 1;                    
+                        if (this.counter === 0 && onReady) {
+                            onReady(this);
+                        }                    
+                        watcher.removeAllListeners('add');
+                        watcher.removeAllListeners('addDir');
+                        watcher
+                            .on('add', path => {
+                                this.insert({ path: path, type: Type.File }, this.watchers[filename].list);
+                                this.onChange?.emit('change', {section: filename, cmd: Command.Add, type: Type.File, path: path});
+                            })
+                            .on('unlink', path => {
+                                this.remove({ path: path, type: Type.File }, this.watchers[filename].list)
+                                this.onChange?.emit('change', {section: filename, cmd: Command.Remove, type: Type.File, path: path});
+                            })
+                            .on('addDir', path => {
+                                this.insert({ path: path, type: Type.Directory }, this.watchers[filename].list);
+                                this.onChange?.emit('change', {section: filename, cmd: Command.Add, type: Type.Directory, path: path});
+                            })
+                            .on('unlinkDir', path => {
+                                this.remove({ path: path, type: Type.Directory }, this.watchers[filename].list)
+                                this.onChange?.emit('change', {section: filename, cmd: Command.Remove, type: Type.Directory, path: path});
+                            })
+                            .on('error', error => console.log(`Watcher error: ${error}`));
+                    });
+            } else {
+                this.counter -= 1;                    
+                if (this.counter === 0 && onReady) {
+                    onReady(this);
+                }                
+            }
         });
     }
 }
